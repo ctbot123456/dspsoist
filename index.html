@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ PSO Gelişmiş Lig ve İstatistik Merkezi</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #10b981;
+            --accent-secondary: #3b82f6;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --dark-gray: #111827;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            text-align: center;
+            color: var(--text-color);
+            margin-top: 0;
+        }
+        h1 { margin-bottom: 25px; font-size: 2.3rem; font-weight: 800; letter-spacing: -0.05em; }
+        
+        .input-section {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        textarea {
+            width: 100%;
+            height: 110px;
+            background-color: #070d19;
+            color: #34d399;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            box-sizing: border-box;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            background-color: var(--accent);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            flex: 5;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .clear-btn { background-color: #ef4444; color: white; flex: 1; }
+        
+        /* Sekme Tasarımı */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+            overflow-x: auto;
+        }
+        .tab-btn {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: none;
+            padding: 10px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: var(--card-bg);
+            color: var(--accent);
+            border: 1px solid var(--border);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px 12px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        th { background-color: var(--dark-gray); color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+        tr:hover { background-color: rgba(255,255,255,0.015); }
+        .text-left { text-align: left; }
+        
+        /* Grid Düzenleri */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+            gap: 20px;
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        .mac-kart {
+            background-color: var(--dark-gray);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .mac-skor { font-size: 1.25rem; font-weight: 700; text-align: center; color: var(--accent); margin-bottom: 4px; }
+        .mac-tarih { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+        .mac-detay-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            font-size: 0.85rem;
+            border-top: 1px dashed var(--border);
+            padding-top: 10px;
+        }
+        .mvp-badge {
+            background-color: #eab308;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .badge-kilit {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚽ PSO Gelişmiş Lig ve İstatistik Paneli</h1>
+    
+    <div class="input-section">
+        <label for="jsonInput"><strong>Maç Sonu İstatistik Dosyasını (MatchStats JSON) Buraya Yapıştır:</strong></label>
+        <textarea id="jsonInput" placeholder='{"team1Stats":{"teamName":"DENİZLİSPOR",...}'></textarea>
+        <div class="btn-group">
+            <button onclick="macEkle()">Maçı Veritabanına İşle</button>
+            <button onclick="verileriSifirla()" class="clear-btn">Sıfırla</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="sekmeAc(event, 'puan-durumu')">📊 Puan Durumu</button>
+        <button class="tab-btn" onclick="sekmeAc(event, 'hucum-kralliklari')">🔥 Hücum Krallıkları</button>
+        <button class="tab-btn" onclick="sekmeAc(event, 'savunma-kralliklari')">🛡️ Savunma ve Kaleci</button>
+        <button class="tab-btn" onclick="sekmeAc(event, 'maclar')">🗓️ Oynanan Maçlar</button>
+    </div>
+
+    <div id="puan-durumu" class="tab-content active">
+        <div class="card">
+            <h2>Lig Güncel Puan Durumu</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sıra</th>
+                        <th class="text-left">Takım</th>
+                        <th>O</th>
+                        <th>G</th>
+                        <th>B</th>
+                        <th>M</th>
+                        <th>AG</th>
+                        <th>YG</th>
+                        <th>AV</th>
+                        <th>Puan</th>
+                    </tr>
+                </thead>
+                <tbody id="puanDurumuBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="hucum-kralliklari" class="tab-content">
+        <div class="stats-grid">
+            <div class="card">
+                <h2>⚽ Gol Krallığı</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Gol</th></tr></thead>
+                    <tbody id="golBody"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>🎯 Asist Krallığı</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Asist</th></tr></thead>
+                    <tbody id="asistBody"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>🔑 İsabetli Kilit Pas Krallığı</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Kilit Pas</th></tr></thead>
+                    <tbody id="kilitPasBody"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>👞 Toplam İsabetli Pas</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Pas</th></tr></thead>
+                    <tbody id="pasBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="savunma-kralliklari" class="tab-content">
+        <div class="stats-grid">
+            <div class="card">
+                <h2>⚔️ Tackle Krallığı (Top Çalma)</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Tackle (Kilit)</th></tr></thead>
+                    <tbody id="tackleBody"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>🛡️ Pas Arası Krallığı (Interception)</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Pas Arası</th></tr></thead>
+                    <tbody id="intBody"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>🧤 Kaleci Kurtarış Krallığı</h2>
+                <table>
+                    <thead><tr><th>Sıra</th><th class="text-left">Oyuncu</th><th>Takım</th><th>Kurtarış (Kapma)</th></tr></thead>
+                    <tbody id="savesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="maclar" class="tab-content">
+        <div class="card">
+            <h2>Geçmiş Maç Detayları</h2>
+            <div id="fiksturList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ligVerisi = JSON.parse(localStorage.getItem('pso_v3_lig_verisi')) || {
+        takimlar: {},
+        oyuncular: {},
+        maclar: []
+    };
+
+    function kaydet() {
+        localStorage.setItem('pso_v3_lig_verisi', JSON.stringify(ligVerisi));
+        tablolariGuncelle();
+    }
+
+    function sekmeAc(evt, sekmeName) {
+        let i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) tabcontent[i].classList.remove("active");
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) tablinks[i].classList.remove("active");
+        document.getElementById(sekmeName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    function takimGetir(name) {
+        let uName = name.toUpperCase().trim();
+        if (!ligVerisi.takimlar[uName]) {
+            ligVerisi.takimlar[uName] = { name: uName, o: 0, g: 0, b: 0, m: 0, ag: 0, yg: 0, av: 0, p: 0 };
+        }
+        return ligVerisi.takimlar[uName];
+    }
+
+    function oyuncuIstatistikIsle(p, mvpMi) {
+        if (!p.playerName) return;
+        let pName = p.playerName.trim();
+        if (!ligVerisi.oyuncular[pName]) {
+            ligVerisi.oyuncular[pName] = { 
+                name: pName, takim: p.team.toUpperCase(), 
+                gol: 0, asist: 0, pas: 0, kilitPas: 0,
+                tackle: 0, kilitTackle: 0, int: 0, kilitInt: 0,
+                saves: 0, catches: 0, mvp: 0 
+            };
+        }
+        let oy = ligVerisi.oyuncular[pName];
+        oy.gol += p.goals || 0;
+        oy.asist += p.assists || 0;
+        oy.pas += p.passes || 0;
+        oy.kilitPas += p.keyPasses || 0;
+        oy.tackle += p.tackles || 0;
+        oy.kilitTackle += p.keyTackles || 0;
+        oy.int += p.interceptions || 0;
+        oy.kilitInt += p.keyInterceptions || 0;
+        oy.saves += p.gKSaves || p.gksaves || 0;
+        oy.catches += p.gKCatches || p.gkcatches || 0;
+        if (mvpMi) oy.mvp += 1;
+    }
+
+    function macEkle() {
+        const input = document.getElementById('jsonInput').value;
+        if (!input.trim()) return alert("Lütfen geçerli bir JSON yapıştırın!");
+
+        try {
+            const data = JSON.parse(input);
+            let t1 = data.team1Stats;
+            let t2 = data.team2Stats;
+
+            let takim1 = takimGetir(t1.teamName);
+            let takim2 = takimGetir(t2.teamName);
+
+            takim1.o += 1; takim2.o += 1;
+            takim1.ag += t1.goals; takim1.yg += t2.goals;
+            takim2.ag += t2.goals; takim2.yg += t1.goals;
+
+            if (t1.goals > t2.goals) {
+                takim1.g += 1; takim1.p += 3;
+                takim2.m += 1;
+            } else if (t2.goals > t1.goals) {
+                takim2.g += 1; takim2.p += 3;
+                takim1.m += 1;
+            } else {
+                takim1.b += 1; takim1.p += 1;
+                takim2.b += 1; takim2.p += 1;
+            }
+            takim1.av = takim1.ag - takim1.yg;
+            takim2.av = takim2.ag - takim2.yg;
+
+            // En Yüksek Performans Puanlı Oyuncuyu (MVP) bulma
+            let tumOyuncular = [...(data.team1PlayerStats || []), ...(data.team2PlayerStats || [])];
+            let mvpOyuncu = null;
+            let enYuksekScore = -1;
+            
+            tumOyuncular.forEach(p => {
+                if (p.score > enYuksekScore) {
+                    enYuksekScore = p.score;
+                    mvpOyuncu = p.playerName;
+                }
+            });
+
+            // Oyuncu verilerini tek tek işle
+            if (data.team1PlayerStats) data.team1PlayerStats.forEach(p => oyuncuIstatistikIsle(p, p.playerName === mvpOyuncu));
+            if (data.team2PlayerStats) data.team2PlayerStats.forEach(p => oyuncuIstatistikIsle(p, p.playerName === mvpOyuncu));
+
+            // Maç golcü detayları oluşturma
+            let t1Goller = (data.team1PlayerStats || []).filter(p => p.goals > 0).map(p => `${p.playerName}(${p.goals})`).join(', ') || 'Yok';
+            let t2Goller = (data.team2PlayerStats || []).filter(p => p.goals > 0).map(p => `${p.playerName}(${p.goals})`).join(', ') || 'Yok';
+
+            ligVerisi.maclar.push({
+                t1Name: takim1.name, t2Name: takim2.name,
+                t1Skor: t1.goals, t2Skor: t2.goals,
+                t1G: t1Goller, t2G: t2Goller,
+                mvp: mvpOyuncu,
+                tarih: new Date().toLocaleString('tr-TR')
+            });
+
+            document.getElementById('jsonInput').value = "";
+            kaydet();
+            alert("Maç, Kilit Pas ve tüm detaylı istatistikler başarıyla işlendi!");
+
+        } catch (e) {
+            alert("HATA: JSON verisi çözülemedi. Kopyaladığınız verinin tam olduğundan emin olun.");
+        }
+    }
+
+    function tabloDoldurGelismiş(elementId, liste, anaKey, ekBadgeKey, birim, ekBirim) {
+        let body = document.getElementById(elementId);
+        if (liste.length === 0) {
+            body.innerHTML = `<tr><td colspan="4" style="color:var(--text-muted)">Kayıt bulunamadı.</td></tr>`;
+            return;
+        }
+        body.innerHTML = liste.map((o, i) => {
+            let ekBadgeGosterim = (ekBadgeKey && o[ekBadgeKey] > 0) ? `<span class="badge-kilit">${o[ekBadgeKey]} ${ekBirim}</span>` : '';
+            let mvpRozeti = (o.mvp > 0 && anaKey === 'gol') ? `<span class="mvp-badge">⭐ ${o.mvp} MVP</span>` : '';
+            return `
+                <tr>
+                    <td><strong>${i+1}</strong></td>
+                    <td class="text-left">${o.name} ${mvpRozeti}</td>
+                    <td><small>${o.takim}</small></td>
+                    <td><strong>${o[anaKey]} ${birim}</strong>${ekBadgeGosterim}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function tablolariGuncelle() {
+        // 1. Puan Durumu Sıralaması
+        let tSirali = Object.values(ligVerisi.takimlar).sort((a,b) => b.p - a.p || b.av - a.av || b.ag - a.ag);
+        document.getElementById('puanDurumuBody').innerHTML = tSirali.map((t, i) => `
+            <tr>
+                <td><strong>${i+1}</strong></td>
+                <td class="text-left"><strong>${t.name}</strong></td>
+                <td>${t.o}</td><td>${t.g}</td><td>${t.b}</td><td>${t.m}</td>
+                <td>${t.ag}</td><td>${t.yg}</td><td>${t.av}</td>
+                <td><span style="color:var(--accent); font-weight:bold">${t.p}</span></td>
+            </tr>
+        `).join('');
+
+        // 2. Oyuncu Listesi Sıralamaları
+        let oList = Object.values(ligVerisi.oyuncular);
+        
+        tabloDoldurGelismiş('golBody', oList.filter(o => o.gol > 0).sort((a,b) => b.gol - a.gol || b.mvp - a.mvp), 'gol', null, '', '');
+        tabloDoldurGelismiş('asistBody', oList.filter(o => o.asist > 0).sort((a,b) => b.asist - a.asist), 'asist', null, '', '');
+        
+        // Kilit Pas Krallığı
+        tabloDoldurGelismiş('kilitPasBody', oList.filter(o => o.kilitPas > 0).sort((a,b) => b.kilitPas - a.kilitPas), 'kilitPas', null, 'K.Pas', '');
+        
+        // Toplam Pas
+        tabloDoldurGelismiş('pasBody', oList.filter(o => o.pas > 0).sort((a,b) => b.pas - a.pas), 'pas', 'kilitPas', '', 'K.Pas');
+        
+        // Tackle (Yanında kilit top çalmaları da küçük badge olarak yazar)
+        tabloDoldurGelismiş('tackleBody', oList.filter(o => o.tackle > 0).sort((a,b) => b.tackle - a.tackle), 'tackle', 'kilitTackle', '', 'Kilit');
+        
+        // Pas Arası
+        tabloDoldurGelismiş('intBody', oList.filter(o => o.int > 0).sort((a,b) => b.int - a.int), 'int', null, '', '');
+        
+        // Kaleci Kurtarışları (Saves yanına topu kontrol ettiği Catches sayısını ekler)
+        tabloDoldurGelismiş('savesBody', oList.filter(o => o.saves > 0).sort((a,b) => b.saves - a.saves), 'saves', 'catches', 'Kurt.', 'Kapan');
+
+        // 3. Geçmiş Maçlar (Fikstür)
+        let fList = document.getElementById('fiksturList');
+        if (ligVerisi.maclar.length === 0) {
+            fList.innerHTML = `<p style="text-align:center; color:var(--text-muted)">Henüz maç oynanmadı.</p>`;
+            return;
+        }
+        fList.innerHTML = ligVerisi.maclar.map(m => `
+            <div class="mac-kart">
+                <div class="mac-skor">${m.t1Name} ${m.t1Skor} - ${m.t2Skor} ${m.t2Name}</div>
+                <div class="mac-tarih">🗓️ ${m.tarih}</div>
+                <div class="mac-detay-grid">
+                    <div>🟢 <b>${m.t1Name} Goller:</b> <small>${m.t1G}</small></div>
+                    <div>⚪ <b>${m.t2Name} Goller:</b> <small>${m.t2G}</small></div>
+                </div>
+                <div style="margin-top: 10px; font-size:0.85rem; color:#eab308; text-align:center;">
+                    🌟 <b>Maçın En Değerli Oyuncusu (MVP):</b> ${m.mvp || 'Bilinmiyor'}
+                </div>
+            </div>
+        `).reverse().join('');
+    }
+
+    function verileriSifirla() {
+        if(confirm("DİKKAT: Tüm lig verilerini, kilit pasları ve kaleci istatistiklerini sıfırlamak istiyor musunuz?")) {
+            ligVerisi = { takimlar: {}, oyuncular: {}, maclar: [] };
+            kaydet();
+        }
+    }
+
+    // İlk yüklemede tabloları hazırla
+    tablolariGuncelle();
+</script>
+</body>
+</html>
