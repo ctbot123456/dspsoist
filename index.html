@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ PSO Turnuva Paneli</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #10b981;
+            --text-color: #f8fafc;
+            --border: #334155;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            text-align: center;
+            color: var(--text-color);
+        }
+        .input-section {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            background-color: #0f172a;
+            color: #fff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+            resize: vertical;
+        }
+        button {
+            background-color: var(--accent);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        th { background-color: #111827; color: var(--accent); }
+        .text-left { text-align: left; }
+        ul { list-style: none; padding: 0; }
+        li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+        .clear-btn {
+            background-color: #ef4444;
+            color: white;
+            margin-top: 5px;
+            padding: 6px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚽ PSO Turnuva Veri Merkezi</h1>
+    
+    <div class="input-section">
+        <label for="jsonInput"><strong>Maç Sonu İstatistiklerini (JSON) Buraya Yapıştır:</strong></label>
+        <textarea id="jsonInput" placeholder='{"team1Stats":...}'></textarea>
+        <button onclick="macEkle()">Maçı İstatistiklere İşle</button>
+        <button onclick="verileriSifirla()" class="clear-btn">Tüm Verileri Sıfırla</button>
+    </div>
+
+    <div class="grid">
+        <!-- Sol Taraf: Puan Durumu & Fikstür -->
+        <div>
+            <div class="card" style="margin-bottom: 20px;">
+                <h2>📊 Güncel Puan Durumu</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sıra</th>
+                            <th class="text-left">Takım</th>
+                            <th>O</th>
+                            <th>G</th>
+                            <th>B</th>
+                            <th>M</th>
+                            <th>AG</th>
+                            <th>YG</th>
+                            <th>AV</th>
+                            <th>P</th>
+                        </tr>
+                    </thead>
+                    <tbody id="puanDurumuBody">
+                        <!-- JS ile dolacak -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2>🗓️ Oynanan Maçlar</h2>
+                <ul id="fiksturList">
+                    <!-- JS ile dolacak -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Sağ Taraf: Krallıklar -->
+        <div>
+            <div class="card" style="margin-bottom: 20px;">
+                <h2>⚽ Gol Krallığı</h2>
+                <ul id="golKralligiList">
+                    <!-- JS ile dolacak -->
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>🎯 Asist Krallığı</h2>
+                <ul id="asistKralligiList">
+                    <!-- JS ile dolacak -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Sayfa yenilense de verilerin kaybolmaması için LocalStorage kullanıyoruz
+    let ligVerisi = JSON.parse(localStorage.getItem('pso_lig_verisi')) || {
+        takimlar: {},
+        oyuncular: {},
+        maclar: []
+    };
+
+    function kaydet() {
+        localStorage.setItem('pso_lig_verisi', JSON.stringify(ligVerisi));
+        tablolariGuncelle();
+    }
+
+    function takimGetirVeyaYarat(name) {
+        let upperName = name.toUpperCase().trim();
+        if (!ligVerisi.takimlar[upperName]) {
+            ligVerisi.takimlar[upperName] = { name: upperName, o: 0, g: 0, b: 0, m: 0, ag: 0, yg: 0, av: 0, p: 0 };
+        }
+        return ligVerisi.takimlar[upperName];
+    }
+
+    function oyuncuIstatistikIsle(player, tip) {
+        let pName = player.playerName;
+        if (!ligVerisi.oyuncular[pName]) {
+            ligVerisi.oyuncular[pName] = { name: pName, takim: player.team.toUpperCase(), gol: 0, asist: 0 };
+        }
+        if (tip === 'gol') ligVerisi.oyuncular[pName].gol += player.goals || 0;
+        if (tip === 'asist') ligVerisi.oyuncular[pName].asist += player.assists || 0;
+    }
+
+    function macEkle() {
+        const input = document.getElementById('jsonInput').value;
+        if (!input.trim()) return alert("Lütfen geçerli bir JSON yapıştırın!");
+
+        try {
+            const data = JSON.parse(input);
+            
+            let t1 = data.team1Stats;
+            let t2 = data.team2Stats;
+
+            let takim1 = takimGetirVeyaYarat(t1.teamName);
+            let takim2 = takimGetirVeyaYarat(t2.teamName);
+
+            // Puan durumu hesaplama
+            takim1.o += 1; takim2.o += 1;
+            takim1.ag += t1.goals; takim1.yg += t2.goals;
+            takim2.ag += t2.goals; takim2.yg += t1.goals;
+
+            if (t1.goals > t2.goals) {
+                takim1.g += 1; takim1.p += 3;
+                takim2.m += 1;
+            } else if (t2.goals > t1.goals) {
+                takim2.g += 1; takim2.p += 3;
+                takim1.m += 1;
+            } else {
+                takim1.b += 1; takim1.p += 1;
+                takim2.b += 1; antisymmetric = 1; takim2.p += 1;
+            }
+            takim1.av = takim1.ag - takim1.yg;
+            takim2.av = takim2.ag - takim2.yg;
+
+            // Oyuncu istatistikleri
+            if (data.team1PlayerStats) data.team1PlayerStats.forEach(p => { oyuncuIstatistikIsle(p, 'gol'); oyuncuIstatistikIsle(p, 'asist'); });
+            if (data.team2PlayerStats) data.team2PlayerStats.forEach(p => { oyuncuIstatistikIsle(p, 'gol'); oyuncuIstatistikIsle(p, 'asist'); });
+
+            // Fikstüre ekle
+            ligVerisi.maclar.push({
+                skor: `${takim1.name} ${t1.goals} - ${t2.goals} ${takim2.name}`,
+                tarih: new Date().toLocaleDateString('tr-TR')
+            });
+
+            document.getElementById('jsonInput').value = "";
+            kaydet();
+            alert("Maç başarıyla işlendi ve tablolara yansıtıldı!");
+
+        } catch (e) {
+            alert("JSON verisi okunamadı! Lütfen kopyaladığınız verinin eksiksiz olduğundan emin olun.");
+        }
+    }
+
+    function tablolariGuncelle() {
+        // Puan Durumu Tablosu
+        let tSirali = Object.values(ligVerisi.takimlar).sort((a,b) => b.p - a.p || b.av - a.av || b.ag - a.ag);
+        let pb = document.getElementById('puanDurumuBody');
+        pb.innerHTML = tSirali.map((t, i) => `
+            <tr>
+                <td><strong>${i+1}</strong></td>
+                <td class="text-left">${t.name}</td>
+                <td>${t.o}</td>
+                <td>${t.g}</td>
+                <td>${t.b}</td>
+                <td>${t.m}</td>
+                <td>${t.ag}</td>
+                <td>${t.yg}</td>
+                <td>${t.av}</td>
+                <td><strong>${t.p}</strong></td>
+            </tr>
+        `).join('');
+
+        // Gol ve Asist Krallığı
+        let oSiraliGol = Object.values(ligVerisi.oyuncular).filter(o => o.gol > 0).sort((a,b) => b.gol - a.gol);
+        document.getElementById('golKralligiList').innerHTML = oSiraliGol.map(o => `<li><span>${o.name} <small>(${o.takim})</small></span> <strong>${o.gol} Gol</strong></li>`).join('') || "<li>Henüz gol kaydı yok.</li>";
+
+        let oSiraliAsist = Object.values(ligVerisi.oyuncular).filter(o => o.asist > 0).sort((a,b) => b.asist - a.asist);
+        document.getElementById('asistKralligiList').innerHTML = oSiraliAsist.map(o => `<li><span>${o.name} <small>(${o.takim})</small></span> <strong>${o.asist} Asist</strong></li>`).join('') || "<li>Henüz asist kaydı yok.</li>";
+
+        // Fikstür Listesi
+        document.getElementById('fiksturList').innerHTML = ligVerisi.maclar.map(m => `<li><span>📝 ${m.skor}</span> <small>${m.tarih}</small></li>`).reverse().join('') || "<li>Henüz maç oynanmadı.</li>";
+    }
+
+    function verileriSifirla() {
+        if(confirm("Tüm turnuva verilerini sıfırlamak istediğinden emin misin?")) {
+            ligVerisi = { takimlar: {}, oyuncular: {}, maclar: [] };
+            kaydet();
+        }
+    }
+
+    // İlk açılışta tabloları doldur
+    tablolariGuncelle();
+</script>
+</body>
+</html>
